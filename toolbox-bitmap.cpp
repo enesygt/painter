@@ -2,6 +2,7 @@
 #include <SFML/System/Sleep.hpp>
 #include <SFML/System/Time.hpp>
 #include <iostream>
+#include <thread>
 #include <vector>
 
 // Grid boyutu
@@ -16,28 +17,30 @@ const std::vector<sf::Color> colors = {sf::Color::Red, sf::Color::Green,
                                        sf::Color::Black};
 sf::Color selectedColor = sf::Color::Black; // Varsayılan renk
 
+void fillPixels(sf::Image &image, sf::Color selectedColor, unsigned int gridX,
+                unsigned int gridY, unsigned int gridSizeX,
+                unsigned int gridSizeY) {
+
+  for (unsigned int offsetY = 0; offsetY < gridSizeY; ++offsetY) {
+    for (unsigned int offsetX = 0; offsetX < gridSizeX; ++offsetX) {
+
+      image.setPixel(gridX + offsetX, gridY + offsetY, selectedColor);
+    }
+  }
+}
 int main() {
   sf::RenderWindow window(sf::VideoMode(800, 650),
                           "SFML Grid Color Change with Toolbox");
-
+  window.setVerticalSyncEnabled(true);
+  window.setFramerateLimit(60);
   const unsigned int width = 800;
   const unsigned int height = 600;
 
   // sf::Image nesnesi beyaz olarak başlatılır
   sf::Image image;
-  image.create(width, height, sf::Color::White);
+  image.create(width, height, sf::Color::Transparent);
 
-  // Bazı pikselleri yeşil ve sarı yapalım
-  for (unsigned int y = 0; y < height; ++y) {
-    for (unsigned int x = 0; x < width; ++x) {
-      if ((x / gridSize) % 2 == 0 && (y / gridSize) % 2 == 0) {
-        image.setPixel(x, y, sf::Color::White);
-      } else if ((x / gridSize) % 2 == 1 && (y / gridSize) % 2 == 1) {
-        image.setPixel(x, y, sf::Color::White);
-      }
-    }
-  }
-
+  fillPixels(image, sf::Color::Transparent, 0, 0, width, height);
   // sf::Texture nesnesi sf::Image nesnesinden yüklenir
   sf::Texture texture;
   texture.loadFromImage(image);
@@ -62,77 +65,67 @@ int main() {
     while (window.pollEvent(event)) {
       if (event.type == sf::Event::Closed) {
         window.close();
-      } else if (event.type == sf::Event::MouseButtonPressed) {
-        if (event.mouseButton.button == sf::Mouse::Left) {
+      } else if (event.key.code == sf::Keyboard::S) {
+        // PNG olarak kaydetme
+        if (!image.saveToFile("bitmap.png")) {
+          std::cerr << "Failed to save image!" << std::endl;
+        } else {
+          std::cout << "Image saved successfully." << std::endl;
+        }
+      }
+
+      else if (event.type == sf::Event::MouseButtonPressed) {
+        bool deleteFlag = false;
+        switch (event.mouseButton.button) {
+        case sf::Mouse::Left:
+          std::cout << "mere\n";
+          flag = true;
+          break;
+        case sf::Mouse::Right:
+          selectedColor = sf::Color::White;
+          flag = true;
+          break;
+        default:
+          break;
+        }
+        if (flag) {
+
           int x = event.mouseButton.x;
           int y = event.mouseButton.y;
 
-          // Renk kutusunda tıklama
           if (y < toolboxHeight) {
             int colorIndex = x / toolboxHeight;
             if (colorIndex < colors.size()) {
               selectedColor = colors[colorIndex];
             }
           } else {
-            // Tıklanan grid hücresinin üst sol köşesini hesaplayalım
+
             int gridX = (x / gridSize) * gridSize;
             int gridY = ((y - toolboxHeight) / gridSize) *
                         gridSize; // toolboxHeight'ı çıkar
 
-            // Grid hücresini seçilen renkle boyayalım
-            for (unsigned int offsetY = 0; offsetY < gridSize; ++offsetY) {
-              for (unsigned int offsetX = 0; offsetX < gridSize; ++offsetX) {
-                if (gridX + offsetX < width && gridY + offsetY < height) {
-                  image.setPixel(gridX + offsetX, gridY + offsetY,
-                                 selectedColor);
-                }
-              }
-            }
-            flag = true;
-            // Texture ve sprite'ı güncelle
+            fillPixels(image, selectedColor, gridX, gridY, gridSize, gridSize);
             texture.loadFromImage(image);
             sprite.setTexture(texture);
           }
-        } else if (event.mouseButton.button == sf::Mouse::Right) {
-          int x = event.mouseButton.x;
-          int y = event.mouseButton.y;
-
-          // Tıklanan grid hücresinin üst sol köşesini hesaplayalım
-          int gridX = (x / gridSize) * gridSize;
-          int gridY = ((y - toolboxHeight) / gridSize) *
-                      gridSize; // toolboxHeight'ı çıkar
-
-          // Grid hücresini seçilen renkle boyayalım
-          for (unsigned int offsetY = 0; offsetY < gridSize; ++offsetY) {
-            for (unsigned int offsetX = 0; offsetX < gridSize; ++offsetX) {
-              if (gridX + offsetX < width && gridY + offsetY < height) {
-                image.setPixel(gridX + offsetX, gridY + offsetY,
-                               sf::Color::White);
-              }
-            }
-          }
-          flag = true;
-          // Texture ve sprite'ı güncelle
-          texture.loadFromImage(image);
-          sprite.setTexture(texture);
         }
       }
-
-      if (flag) {
-        window.clear(sf::Color::White);
-
-        // ToolBox'u çiz
-        for (const auto &colorBox : colorBoxes) {
-          window.draw(colorBox);
-        }
-        std::cout << "HERE\n";
-        window.draw(sprite);
-        window.display();
-        flag = false;
-      }
-
-      sf::sleep(sf::milliseconds(10));
     }
+    if (flag) {
+      window.clear(sf::Color::White);
+
+      // ToolBox'u çiz
+      for (const auto &colorBox : colorBoxes) {
+        window.draw(colorBox);
+      }
+      std::cout << "HERE\n";
+      window.draw(sprite);
+      window.display();
+      flag = false;
+    } else
+      std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    // sf::sleep(sf::milliseconds(10));
   }
+
   return 0;
 }
