@@ -82,7 +82,7 @@ int main() {
           flag = true;
           break;
         case sf::Mouse::Right:
-          selectedColor = sf::Color::White;
+          selectedColor = sf::Color::Transparent;
           flag = true;
           break;
         default:
@@ -111,6 +111,30 @@ int main() {
         }
       }
     }
+    if (sf::Mouse::isButtonPressed(sf::Mouse::Left)) {
+      std::cout << "Still left is pressed \n";
+      sf::Vector2i mousePos = sf::Mouse::getPosition(window);
+
+      int x = mousePos.x;
+      int y = mousePos.y;
+
+      if (y < toolboxHeight) {
+        int colorIndex = x / toolboxHeight;
+        if (colorIndex < colors.size()) {
+          selectedColor = colors[colorIndex];
+        }
+      } else {
+
+        int gridX = (x / gridSize) * gridSize;
+        int gridY = ((y - toolboxHeight) / gridSize) *
+                    gridSize; // toolboxHeight'ı çıkar
+
+        fillPixels(image, selectedColor, gridX, gridY, gridSize, gridSize);
+        texture.loadFromImage(image);
+        sprite.setTexture(texture);
+      }
+      flag = true;
+    }
     if (flag) {
       window.clear(sf::Color::White);
 
@@ -123,7 +147,7 @@ int main() {
       window.display();
       flag = false;
     } else
-      std::this_thread::sleep_for(std::chrono::milliseconds(50));
+      std::this_thread::sleep_for(std::chrono::milliseconds(15));
     // sf::sleep(sf::milliseconds(10));
   }
 
